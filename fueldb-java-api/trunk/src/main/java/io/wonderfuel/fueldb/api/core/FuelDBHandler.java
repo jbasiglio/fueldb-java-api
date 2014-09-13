@@ -1,38 +1,29 @@
 package io.wonderfuel.fueldb.api.core;
 
-import io.wonderfuel.fueldb.api.endpoint.WSockClientEndpoint;
+import io.wonderfuel.fueldb.api.FuelDB;
+import io.wonderfuel.fueldb.api.endpoint.ClientEndpointEnum;
+import io.wonderfuel.fueldb.api.endpoint.IClientEndpoint;
 import io.wonderfuel.fueldb.api.listener.DataListener;
-import io.wonderfuel.fueldb.api.utils.CypherUtil;
+import io.wonderfuel.fueldb.api.utils.Wrapper;
 
-import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URI;
-import java.net.URL;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.websocket.ClientEndpointConfig;
-import javax.websocket.DeploymentException;
-import javax.websocket.WebSocketContainer;
-
-import org.glassfish.tyrus.client.ClientManager;
 import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
 
-public class FuelDBHandler {
+public class FuelDBHandler implements FuelDB {
 
-	private String uri;
+	private String host;
+	private Integer port;
+	private Boolean ssl;
 	private String user;
 	private String password;
 
-	private String wsUri;
-	private String httpUri;
+	//private String httpUri;
 
-	private WSockClientEndpoint endpoint;
+	private IClientEndpoint endpoint;
 
 	private Map<String, DataListener> susbscribes = Collections
 			.synchronizedMap(new HashMap<String, DataListener>());
@@ -55,11 +46,19 @@ public class FuelDBHandler {
 			System.out.println("Open Handler");
 		}
 	};
+	
+	public static FuelDB get(ClientEndpointEnum type, String host, Integer port, Boolean ssl, 
+			String password, String user){
+		return new FuelDBHandler(type, host, port, ssl, password, user);
+	}
 
-	public FuelDBHandler(String uri, Boolean ssl, String password, String user) {
-		this.uri = uri;
-		this.wsUri = "ws" + (ssl ? "s" : "") + "://" + this.uri;
-		this.httpUri = "http" + (ssl ? "s" : "") + "://" + this.uri;
+	private FuelDBHandler(ClientEndpointEnum type, String host, Integer port, Boolean ssl, 
+			String password, String user) {
+		
+		this.host = host;
+		this.port = port;
+		this.ssl = ssl;
+		//this.httpUri = "http" + (ssl ? "s" : "") + "://" + this.host+":"+this.port;
 		this.user = user;
 		this.password = password;
 		callbacks.put(".ERROR", new DataListener() {
@@ -80,62 +79,104 @@ public class FuelDBHandler {
 				System.out.println("[INFO] " + data.toJSONString());
 			}
 		});
+		endpoint = type.instance(this);
 		connect();
 	}
 
-	private String computeURL(String point) {
-		String toSign = "/" + point + "?timestamp=" + new Date().getTime()
-				+ "&user=" + user;
-		String key = CypherUtil.hash(password, user);
-		String sign = CypherUtil.hash(toSign, key);
-		return toSign + "&signature=" + sign;
-	}
-
+	@Override
 	public void connect() {
-		try {
-			WebSocketContainer container = ClientManager.createClient();
-			if (endpoint == null) {
-				endpoint = new WSockClientEndpoint(this);
-			}
-			container.connectToServer(endpoint, ClientEndpointConfig.Builder
-					.create().build(), URI.create(this.wsUri + computeURL("")));
-		} catch (DeploymentException | IOException e) {
-			e.printStackTrace();
-		}
+		endpoint.connect(host, port, ssl, user, password);
 	}
 
+	@Override
 	@SuppressWarnings("unchecked")
 	public void subscribe(String point, DataListener listener) {
 		susbscribes.put(point, listener);
 		JSONObject obj = new JSONObject();
 		obj.put("type", "subscribe");
 		obj.put("point", point);
-		endpoint.send(obj.toJSONString());
+		try {
+			endpoint.send(obj.toJSONString());
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	
+	@Override
 	@SuppressWarnings("unchecked")
 	public void unsubscribe(String point) {
 		susbscribes.remove(point);
 		JSONObject obj = new JSONObject();
 		obj.put("type", "unsubscribe");
 		obj.put("point", point);
-		endpoint.send(obj.toJSONString());
+		try {
+			endpoint.send(obj.toJSONString());
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
+	@Override
 	@SuppressWarnings("unchecked")
-	public void read(String point, DataListener listener) {
-		String uid = getUID();
-		callbacks.put(uid, listener);
+	public void read(String point, final DataListener listener) {
+		final String uid = getUID();
+		callbacks.put(uid, new DataListener() {
+			@Override
+			public void handle(JSONObject data) {
+				callbacks.remove(uid);
+				listener.handle(data);
+			}
+		});
 		JSONObject obj = new JSONObject();
 		obj.put("type", "read");
 		obj.put("point", point);
 		obj.put("id", uid);
-		endpoint.send(obj.toJSONString());
+		try {
+			endpoint.send(obj.toJSONString());
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
+	@Override
+	@SuppressWarnings("unchecked")
 	public JSONObject readSync(String point) {
+		final Wrapper<JSONObject> response = new Wrapper<>();
+		String uid = getUID();
+		callbacks.put(uid, new DataListener() {
+			@Override
+			public void handle(JSONObject data) {
+				response.setValue(data);
+				synchronized (response) {
+					response.notify();
+				}
+			}
+		});
+		JSONObject obj = new JSONObject();
+		obj.put("type", "read");
+		obj.put("point", point);
+		obj.put("id", uid);
 		try {
-			URL url = new URL(httpUri + computeURL(point));
+			endpoint.send(obj.toJSONString());
+			synchronized (response) {
+				response.wait(2000L);
+			}
+			callbacks.remove(uid);
+			return response.getValue();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	/*
+	public JSONObject readHTTP(String point){
+		try {
+			URL url = new URL(httpUri + WebUtils.computeURL(point,user,password));
 			HttpURLConnection con = (HttpURLConnection) url.openConnection();
 			con.setRequestMethod("GET");
 			return (JSONObject) new JSONParser().parse(new InputStreamReader(con.getInputStream()));
@@ -144,21 +185,67 @@ public class FuelDBHandler {
 		}
 		return null;
 	}
+	*/
 
+	@Override
 	@SuppressWarnings("unchecked")
-	public void browse(String point, DataListener listener) {
-		String uid = getUID();
-		callbacks.put(uid, listener);
+	public void browse(String point, final DataListener listener) {
+		final String uid = getUID();
+		callbacks.put(uid, new DataListener() {
+			@Override
+			public void handle(JSONObject data) {
+				callbacks.remove(uid);
+				listener.handle(data);
+			}
+		});
 		JSONObject obj = new JSONObject();
 		obj.put("type", "browse");
 		obj.put("point", point);
 		obj.put("id", uid);
-		endpoint.send(obj.toJSONString());
+		try {
+			endpoint.send(obj.toJSONString());
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
+	@Override
+	@SuppressWarnings("unchecked")
+	public JSONObject browseSync(String point) {
+		final Wrapper<JSONObject> response = new Wrapper<>();
+		String uid = getUID();
+		callbacks.put(uid, new DataListener() {
+			@Override
+			public void handle(JSONObject data) {
+				response.setValue(data);
+				synchronized (response) {
+					response.notify();
+				}
+			}
+		});
+		JSONObject obj = new JSONObject();
+		obj.put("type", "browse");
+		obj.put("point", point);
+		obj.put("id", uid);
+		try {
+			endpoint.send(obj.toJSONString());
+			synchronized (response) {
+				response.wait(2000L);
+			}
+			callbacks.remove(uid);
+			return response.getValue();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return null;
 	}
 	
-	public JSONObject browseSync(String point) {
+	/*
+	public JSONObject browseHTTP(String point){
 		try {
-			URL url = new URL(httpUri + computeURL(point));
+			URL url = new URL(httpUri + WebUtils.computeURL(point,user,password));
 			HttpURLConnection con = (HttpURLConnection) url.openConnection();
 			con.setRequestMethod("POST");
 			return (JSONObject) new JSONParser().parse(new InputStreamReader(con.getInputStream()));
@@ -167,19 +254,27 @@ public class FuelDBHandler {
 		}
 		return null;
 	}
+	*/
 
+	@Override
 	@SuppressWarnings("unchecked")
 	public void write(String point, JSONObject value) {
 		JSONObject obj = new JSONObject();
 		obj.put("type", "set");
 		obj.put("point", point);
 		obj.put("value", value);
-		endpoint.send(obj.toJSONString());
+		try {
+			endpoint.send(obj.toJSONString());
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	
-	public void writeSync(String point, JSONObject value) {
+	/*
+	public void writeHTTP(String point, JSONObject value) {
 		try {
-			URL url = new URL(httpUri + computeURL(point));
+			URL url = new URL(httpUri + WebUtils.computeURL(point,user,password));
 			HttpURLConnection con = (HttpURLConnection) url.openConnection();
 			con.setRequestMethod("PUT");con.setDoOutput(true);
 			DataOutputStream wr = new DataOutputStream(con.getOutputStream());
@@ -191,18 +286,26 @@ public class FuelDBHandler {
 			e.printStackTrace();
 		}
 	}
+	*/
 
+	@Override
 	@SuppressWarnings("unchecked")
 	public void remove(String point) {
 		JSONObject obj = new JSONObject();
 		obj.put("type", "remove");
 		obj.put("point", point);
-		endpoint.send(obj.toJSONString());
+		try {
+			endpoint.send(obj.toJSONString());
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	
-	public void removeSync(String point) {
+	/*
+	public void removeHTTP(String point) {
 		try {
-			URL url = new URL(httpUri + computeURL(point));
+			URL url = new URL(httpUri + WebUtils.computeURL(point,user,password));
 			HttpURLConnection con = (HttpURLConnection) url.openConnection();
 			con.setRequestMethod("DELETE");
 			con.getResponseCode();
@@ -210,7 +313,8 @@ public class FuelDBHandler {
 			e.printStackTrace();
 		}
 	}
-
+	*/
+	
 	private String getUID() {
 		if (counter.equals(Integer.MAX_VALUE)) {
 			counter = 0;
@@ -230,6 +334,7 @@ public class FuelDBHandler {
 		return onClose;
 	}
 
+	@Override
 	public void setOnClose(DataListener onClose) {
 		this.onClose = onClose;
 	}
@@ -238,6 +343,7 @@ public class FuelDBHandler {
 		return onOpen;
 	}
 
+	@Override
 	public void setOnOpen(DataListener onOpen) {
 		this.onOpen = onOpen;
 	}
