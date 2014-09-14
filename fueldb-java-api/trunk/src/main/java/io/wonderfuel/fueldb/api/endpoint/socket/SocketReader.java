@@ -24,7 +24,7 @@ public class SocketReader extends Thread {
 				ByteBuffer buff = ByteBuffer.allocate(BUFF_SIZE);
 				String message = "";
 				int r = BUFF_SIZE;
-				while(r == BUFF_SIZE && buff.get(r-1) != (int)'}'){
+				while(buff.get(r-1) != (int)'\n'){
 					buff = ByteBuffer.allocate(BUFF_SIZE);
 					r = channel.read(buff);
 					message += new String(buff.array(),Charset.forName("UTF-8"));			
