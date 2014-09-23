@@ -25,6 +25,12 @@
 		</license>
 	</licenses>
 
+	<scm>
+		<connection>scm:svn:https://wonderfuel.io/scm/svn/Wonderfuel/fueldb-java-api/trunk</connection>
+		<developerConnection>scm:svn:https://wonderfuel.io/scm/svn/Wonderfuel/fueldb-java-api/trunk</developerConnection>
+		<url>https://wonderfuel.io/scm/svn/Wonderfuel/</url>
+	</scm>
+
 	<distributionManagement>
 		<snapshotRepository>
 			<id>ossrh</id>
@@ -55,6 +61,32 @@
 						<phase>verify</phase>
 						<goals>
 							<goal>sign</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-javadoc-plugin</artifactId>
+				<version>2.10</version>
+				<executions>
+				<execution>
+					<id>attach-javadocs</id>
+					<goals>
+						<goal>jar</goal>
+					</goals>
+				</execution>
+			</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-source-plugin</artifactId>
+				<version>2.3</version>
+				<executions>
+					<execution>
+						<id>attach-sources</id>
+						<goals>
+							<goal>jar</goal>
 						</goals>
 					</execution>
 				</executions>

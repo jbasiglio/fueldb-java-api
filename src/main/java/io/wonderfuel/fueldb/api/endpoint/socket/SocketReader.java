@@ -1,40 +1,54 @@
 package io.wonderfuel.fueldb.api.endpoint.socket;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.channels.SocketChannel;
+import io.wonderfuel.fueldb.api.core.FuelDBHandler;
+
+import java.io.InputStream;
 import java.nio.charset.Charset;
+import java.util.Arrays;
+
+import org.json.simple.JSONObject;
 
 public class SocketReader extends Thread {
 
-	private SockClientEndpoint endpoint;
-	private SocketChannel channel;
-	
+	private FuelDBHandler handler;
+	//private SockClientEndpoint endpoint;
+	private InputStream stream;
+
 	private final static int BUFF_SIZE = 2048;
 
-	public SocketReader(SockClientEndpoint endpoint, SocketChannel channel) {
-		this.endpoint = endpoint;
-		this.channel = channel;
+	public SocketReader(FuelDBHandler handler, InputStream stream) {
+		this.handler = handler;
+		//this.endpoint = endpoint;
+		this.stream = stream;
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public void run() {
 		try {
-			while (channel.isConnected()) {
-				ByteBuffer buff = ByteBuffer.allocate(BUFF_SIZE);
+			while (true) {
+				byte[] buff = new byte[BUFF_SIZE];
 				String message = "";
 				int r = BUFF_SIZE;
-				while(buff.get(r-1) != (int)'\n'){
-					buff = ByteBuffer.allocate(BUFF_SIZE);
-					r = channel.read(buff);
-					message += new String(buff.array(),Charset.forName("UTF-8"));			
+				while (buff[(r - 1)] != (int) '\3') {
+					Arrays.fill(buff, (byte) 0);
+					r = stream.read(buff);
+					if(r<0){
+						r = BUFF_SIZE;
+						continue;
+					}
+					message += new String(buff, Charset.forName("UTF-8"));
 				}
-				endpoint.onMessage(message.trim());
+				handler.process(message.trim());
 			}
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
+		} catch (Exception e) {
 			e.printStackTrace();
+			JSONObject error = new JSONObject();
+			error.put("point", ".ERROR");
+			error.put("value", e.getLocalizedMessage());
+			handler.process(error.toJSONString());
 		}
+		handler.getOnClose().handle(null);
 	}
 
 }
