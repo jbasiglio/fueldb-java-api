@@ -3,13 +3,17 @@ package io.wonderfuel.fueldb.api.core;
 import io.wonderfuel.fueldb.api.endpoint.IClientEndpoint;
 
 import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
-public class ReconnectTask implements Runnable {
+public class ResendTask implements Runnable {
 
+	private final static Logger LOG = Logger.getLogger(ResendTask.class.getName());
+	
 	private IClientEndpoint endpoint;
 	private String msg;
 	
-	public ReconnectTask(IClientEndpoint endpoint, String msg){
+	public ResendTask(IClientEndpoint endpoint, String msg){
 		this.endpoint = endpoint;
 		this.msg = msg;
 	}
@@ -19,8 +23,7 @@ public class ReconnectTask implements Runnable {
 		try {
 			endpoint.send(msg);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			LOG.log(Level.SEVERE, "Can't send data", e);
 		}
 	}
 
