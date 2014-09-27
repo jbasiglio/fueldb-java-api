@@ -1,24 +1,29 @@
 package io.wonderfuel.fueldb.api.endpoint.socket;
 
-import io.wonderfuel.fueldb.api.core.FuelDBHandler;
-
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.Arrays;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.json.simple.JSONObject;
 
+/**
+ * @author Joris Basiglio
+ *
+ */
 public class SocketReader extends Thread {
 
-	private FuelDBHandler handler;
-	//private SockClientEndpoint endpoint;
+	private final static Logger LOG = Logger.getLogger(SocketReader.class.getName());
+	
+	private SockClientEndpoint endpoint;
+	
 	private InputStream stream;
 
 	private final static int BUFF_SIZE = 2048;
 
-	public SocketReader(FuelDBHandler handler, InputStream stream) {
-		this.handler = handler;
-		//this.endpoint = endpoint;
+	public SocketReader(SockClientEndpoint endpoint, InputStream stream) {
+		this.endpoint = endpoint;
 		this.stream = stream;
 	}
 
@@ -26,7 +31,7 @@ public class SocketReader extends Thread {
 	@Override
 	public void run() {
 		try {
-			while (true) {
+			while (endpoint.isConnected()) {
 				byte[] buff = new byte[BUFF_SIZE];
 				String message = "";
 				int r = BUFF_SIZE;
@@ -39,16 +44,16 @@ public class SocketReader extends Thread {
 					}
 					message += new String(buff, Charset.forName("UTF-8"));
 				}
-				handler.process(message.trim());
+				endpoint.process(message.trim());
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			LOG.log(Level.SEVERE, "Error when reading the socket", e);
 			JSONObject error = new JSONObject();
 			error.put("point", ".ERROR");
 			error.put("value", e.getLocalizedMessage());
-			handler.process(error.toJSONString());
+			endpoint.process(error.toJSONString());
 		}
-		handler.getOnClose().handle(null);
+		endpoint.onReaderEnd();
 	}
 
 }

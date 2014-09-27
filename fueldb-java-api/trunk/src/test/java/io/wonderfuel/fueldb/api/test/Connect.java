@@ -7,28 +7,42 @@ import io.wonderfuel.fueldb.api.listener.DataListener;
 
 import java.io.IOException;
 
-import javax.websocket.DeploymentException;
-
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
+/**
+ * @author Joris Basiglio
+ *
+ */
 public class Connect {
 
 	public static void main(String[] args) {
-		final FuelDB handler = FuelDBHandler.get(ClientEndpointEnum.SOCKET, "127.0.0.1", 8103, false, "admin", "admin");
+		FuelDB fueldb = FuelDBHandler.get(ClientEndpointEnum.SOCKET, "127.0.0.1", 8103, false, "admin", "admin");
 		try {
-			handler.connect();
-
-			handler.subscribe("fueldb.cpu.load", new DataListener() {
+			fueldb.connect();
+			fueldb.subscribe("fueldb.cpu.load", new DataListener() {
 				@Override
 				public void handle(JSONObject data) {
-					System.out.println("Subs: " + data.toJSONString());
+					System.out.println("Subs: " + data.get("value").toString());
 
 				}
 			});
-
-			JSONObject obj = handler.readSync("fueldb.cpu.load");
+			fueldb.read("your.data.point", new DataListener() {
+				@Override
+				public void handle(JSONObject data) {
+					System.out.println("Read value:"+data.get("value"));
+				}
+			});
+			fueldb.browse("test", new DataListener() {
+				
+				@Override
+				public void handle(JSONObject data) {
+					System.out.println("Values: "+data.get("value")+" Size: "+((JSONArray)data.get("value")).size());
+				}
+			});
+			JSONObject obj = fueldb.readSync("your.data.point");
 			System.out.println("Read Sync: " + obj.toJSONString());
-		} catch (IOException | InterruptedException | DeploymentException e) {
+		} catch (IOException | InterruptedException e) {
 			e.printStackTrace();
 		}
 	}

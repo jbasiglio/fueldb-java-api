@@ -10,6 +10,8 @@ import java.net.URI;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.websocket.ClientEndpointConfig;
 import javax.websocket.CloseReason;
@@ -23,8 +25,14 @@ import javax.websocket.WebSocketContainer;
 import org.glassfish.tyrus.client.ClientManager;
 import org.json.simple.JSONObject;
 
+/**
+ * @author Joris Basiglio
+ *
+ */
 public class WSockClientEndpoint extends Endpoint implements IClientEndpoint {
 
+	private static final Logger LOG = Logger.getLogger(WSockClientEndpoint.class.getName());
+	
 	private Session session;
 	private static WebSocketContainer container;
 
@@ -35,12 +43,21 @@ public class WSockClientEndpoint extends Endpoint implements IClientEndpoint {
 
 	}
 
-	public void connect(String host, Integer port, Boolean ssl, String user, String password) throws DeploymentException, IOException {
+	public void connect(String host, Integer port, Boolean ssl, String user, String password) throws IOException {
 		String wsUri = "ws" + (ssl ? "s" : "") + "://" + host + ":" + port;
 		if (container == null) {
 			container = ClientManager.createClient();
 		}
-		container.connectToServer(this, ClientEndpointConfig.Builder.create().build(), URI.create(wsUri + WebUtils.computeURL("", user, password)));
+		try {
+			container.connectToServer(this, ClientEndpointConfig.Builder.create().build(), URI.create(wsUri + WebUtils.computeURL("", user, password)));
+		} catch (DeploymentException e) {
+			LOG.log(Level.SEVERE, "Unable to deploy websocket", e);
+		}
+	}
+	
+	@Override
+	public void disconnect() throws IOException{
+		session.close();
 	}
 
 	@Override
