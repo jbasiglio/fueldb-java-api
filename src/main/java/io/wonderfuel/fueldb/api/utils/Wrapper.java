@@ -1,5 +1,9 @@
 package io.wonderfuel.fueldb.api.utils;
 
+/**
+ * @author Joris Basiglio
+ *
+ */
 public class Wrapper<T> {
 
 	private T value;

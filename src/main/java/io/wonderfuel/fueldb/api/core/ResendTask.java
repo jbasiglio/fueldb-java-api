@@ -6,6 +6,10 @@ import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ * @author Joris Basiglio
+ *
+ */
 public class ResendTask implements Runnable {
 
 	private final static Logger LOG = Logger.getLogger(ResendTask.class.getName());

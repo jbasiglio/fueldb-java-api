@@ -13,12 +13,14 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.websocket.DeploymentException;
-
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
+/**
+ * @author Joris Basiglio
+ *
+ */
 public class FuelDBHandler implements FuelDB {
 
 	private static final Logger LOG = Logger.getLogger(FuelDBHandler.class.getName());
@@ -51,11 +53,29 @@ public class FuelDBHandler implements FuelDB {
 		}
 	};
 
-	public static FuelDB get(ClientEndpointEnum type, String host, Integer port, Boolean ssl, String password, String user) {
-		return new FuelDBHandler(type, host, port, ssl, password, user);
+	/**
+	 * Create a prepared {@link FuelDB} implementation that allow you to use the remote FuelDB database.
+	 * It does not start directly the connection, use {@link FuelDB#connect()} to enable it.
+	 * <p>
+	 * You can also create multiple session by invoking this method multiple times.
+	 * 
+	 * @param type specify the provided connector to use FuelDB using {@link ClientEndpointEnum}. 
+	 * 				Currently only WEBSOCKET and SOCKET are available
+	 * @param host is the hostname of the remote server that host the FuelDB database
+	 * @param port specify which TCP Port should be used to connect with the database
+	 * @param ssl enable secure connection with the database. The database has to use a valid signed certificate.
+	 * @param user
+	 * @param password 
+	 * @return an implementation of {@link FuelDB} interface
+	 * <p>
+	 * Example: <br>
+	 * {@code FuelDB handler = FuelDBHandler.get(ClientEndpointEnum.WEBSOCKET, "wonderfuel.io", 8101, false, "admin", "admin")}
+	 */
+	public static FuelDB get(ClientEndpointEnum type, String host, Integer port, Boolean ssl, String user, String password) {
+		return new FuelDBHandler(type, host, port, ssl, user, password);
 	}
 
-	private FuelDBHandler(ClientEndpointEnum type, String host, Integer port, Boolean ssl, String password, String user) {
+	private FuelDBHandler(ClientEndpointEnum type, String host, Integer port, Boolean ssl, String user, String password) {
 
 		this.host = host;
 		this.port = port;
@@ -84,9 +104,16 @@ public class FuelDBHandler implements FuelDB {
 	}
 
 	@Override
-	public void connect() throws DeploymentException, IOException {
+	public void connect() throws IOException {
 		endpoint.connect(host, port, ssl, user, password);
 	}
+	
+	@Override
+	public void disconnect() throws IOException {
+		endpoint.disconnect();
+	}
+	
+	
 
 	public void process(String message) {
 		JSONObject obj = null;
@@ -236,7 +263,7 @@ public class FuelDBHandler implements FuelDB {
 
 	@Override
 	@SuppressWarnings("unchecked")
-	public void write(String point, JSONObject value) throws IOException {
+	public void write(String point, Object value) throws IOException {
 		JSONObject obj = new JSONObject();
 		obj.put("type", "set");
 		obj.put("point", point);

@@ -5,7 +5,10 @@ import java.security.Key;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
-
+/**
+ * @author Joris Basiglio
+ *
+ */
 public class CypherUtil {
 	
 	private static final char[] DIGITS_LOWER =

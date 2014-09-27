@@ -1,9 +1,11 @@
 package io.wonderfuel.fueldb.api.utils;
 
-import io.wonderfuel.fueldb.api.utils.CypherUtil;
-
 import java.util.Date;
 
+/**
+ * @author Joris Basiglio
+ *
+ */
 public class WebUtils {
 
 	public static String computeURL(String point, String user, String password) {

@@ -4,6 +4,10 @@ import io.wonderfuel.fueldb.api.core.FuelDBHandler;
 import io.wonderfuel.fueldb.api.endpoint.socket.SockClientEndpoint;
 import io.wonderfuel.fueldb.api.endpoint.websocket.WSockClientEndpoint;
 
+/**
+ * @author Joris Basiglio
+ *
+ */
 public enum ClientEndpointEnum {
 
 	SOCKET{

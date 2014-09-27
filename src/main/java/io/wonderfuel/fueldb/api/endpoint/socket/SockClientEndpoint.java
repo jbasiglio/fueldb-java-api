@@ -12,11 +12,19 @@ import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.SSLSocketFactory;
 
+/**
+ * @author Joris Basiglio
+ *
+ */
 public class SockClientEndpoint implements IClientEndpoint {
 
 	private final FuelDBHandler handler;
 
 	private Socket socket;
+	
+	private SocketReader reader;
+	
+	private Boolean connected = false;
 
 	public SockClientEndpoint(FuelDBHandler handler) {
 		this.handler = handler;
@@ -30,9 +38,28 @@ public class SockClientEndpoint implements IClientEndpoint {
 			}else if(socket == null && (ssl != null && ssl)){
 				socket = SSLSocketFactory.getDefault().createSocket(host, port);
 			}
+			connected = true;
 			handler.getOnOpen().handle(null);
-			SocketReader reader = new SocketReader(handler, socket.getInputStream());
+			reader = new SocketReader(this, socket.getInputStream());
 			reader.start();
+	}
+	
+	public void process(String msg){
+		handler.process(msg);
+	}
+	
+	public void onReaderEnd(){
+		handler.getOnClose().handle(null);
+	}
+	
+	@Override
+	public void disconnect() throws IOException{
+		connected = false;
+		// Nothing to do
+	}
+	
+	public Boolean isConnected(){
+		return connected;
 	}
 
 	@Override
