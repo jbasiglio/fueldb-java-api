@@ -44,7 +44,13 @@ public class SocketReader extends Thread {
 					}
 					message += new String(buff, Charset.forName("UTF-8"));
 				}
-				endpoint.process(message.trim());
+				String[] array = message.split("\3");
+				for (String part : array) {
+					if(!part.trim().isEmpty()){
+						endpoint.process(part.trim());
+					}
+				}
+				
 			}
 		} catch (Exception e) {
 			LOG.log(Level.SEVERE, "Error when reading the socket", e);
