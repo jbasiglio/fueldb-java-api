@@ -27,14 +27,14 @@ public class Connect {
 
 				}
 			});
-			fueldb.read("your.data.point", new DataListener() {
+			fueldb.read("fueldb.iops", new DataListener() {
 				@Override
 				public void handle(JSONObject data) {
-					System.out.println("Read value:"+data.get("value"));
+					System.out.println("Read value: "+data.get("value"));
 				}
 			});
-			fueldb.browse("test", new DataListener() {
-				
+			
+			fueldb.browse("", new DataListener() {
 				@Override
 				public void handle(JSONObject data) {
 					System.out.println("Values: "+data.get("value")+" Size: "+((JSONArray)data.get("value")).size());
