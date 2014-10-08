@@ -34,6 +34,7 @@ public class WSockClientEndpoint extends Endpoint implements IClientEndpoint {
 	private static final Logger LOG = Logger.getLogger(WSockClientEndpoint.class.getName());
 	
 	private Session session;
+	
 	private static WebSocketContainer container;
 
 	private final FuelDBHandler handler;
