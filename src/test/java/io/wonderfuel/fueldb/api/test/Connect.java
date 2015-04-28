@@ -17,9 +17,10 @@ import org.json.simple.JSONObject;
 public class Connect {
 
 	public static void main(String[] args) {
-		FuelDB fueldb = FuelDBHandler.get(ClientEndpointEnum.SOCKET, "127.0.0.1", 8103, false, "admin", "admin");
+		FuelDB fueldb = FuelDBHandler.get(ClientEndpointEnum.WEBSOCKET, "wonderfuel.io", 8102, true, "admin", "admin");
 		try {
 			fueldb.connect();
+			
 			fueldb.subscribe("fueldb.cpu.load", new DataListener() {
 				@Override
 				public void handle(JSONObject data) {
@@ -27,6 +28,7 @@ public class Connect {
 
 				}
 			});
+			
 			fueldb.read("fueldb.iops", new DataListener() {
 				@Override
 				public void handle(JSONObject data) {

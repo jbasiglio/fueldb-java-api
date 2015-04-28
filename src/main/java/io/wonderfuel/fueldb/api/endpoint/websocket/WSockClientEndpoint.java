@@ -103,7 +103,7 @@ public class WSockClientEndpoint extends Endpoint implements IClientEndpoint {
 			session.getBasicRemote().sendText(msg);
 		} else {
 			ScheduledExecutorService exec = Executors.newSingleThreadScheduledExecutor();
-			exec.schedule(new ResendTask(this, msg), 5, TimeUnit.SECONDS);
+			exec.schedule(new ResendTask(this, msg), 1, TimeUnit.SECONDS);
 		}
 	}
 }
