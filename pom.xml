@@ -17,7 +17,7 @@
 			<organization>Wonderfuel</organization>
 		</developer>
 	</developers>
-	
+
 	<licenses>
 		<license>
 			<name>The MIT License (MIT)</name>
@@ -27,9 +27,9 @@
 	</licenses>
 
 	<scm>
-		<connection>scm:svn:https://wonderfuel.io/scm/svn/Wonderfuel/fueldb-java-api/trunk</connection>
-		<developerConnection>scm:svn:https://wonderfuel.io/scm/svn/Wonderfuel/fueldb-java-api/trunk</developerConnection>
-		<url>https://wonderfuel.io/scm/svn/Wonderfuel/</url>
+		<connection>scm:git:https://github.com/unnamed38/fueldb-java-api.git</connection>
+		<developerConnection>scm:svn:https://github.com/unnamed38/fueldb-java-api.git</developerConnection>
+		<url>https://github.com/unnamed38/fueldb-java-api/</url>
 	</scm>
 
 	<distributionManagement>
@@ -71,13 +71,16 @@
 				<artifactId>maven-javadoc-plugin</artifactId>
 				<version>2.10</version>
 				<executions>
-				<execution>
-					<id>attach-javadocs</id>
-					<goals>
-						<goal>jar</goal>
-					</goals>
-				</execution>
-			</executions>
+					<execution>
+						<id>attach-javadocs</id>
+						<goals>
+							<goal>jar</goal>
+						</goals>
+						<configuration>
+							<additionalparam>-Xdoclint:none</additionalparam>
+						</configuration>
+					</execution>
+				</executions>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
